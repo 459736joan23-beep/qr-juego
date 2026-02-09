@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<title>Gymkana QR Bellvitge</title>
+<style>
+body { font-family: Arial; text-align: center; background:#f4f4f4; }
+input, button { padding: 10px; margin: 5px; font-size:16px; }
+#juego, #final { display:none; }
+</style>
+</head>
+<body>
+
+<h1>🏃‍♂️ Gymkana QR Bellvitge</h1>
+
+<div id="inicio">
+  <p>Nom de l’equip:</p>
+  <input id="equipo" placeholder="Equip 1">
+  <br>
+  <button onclick="iniciar()">Començar</button>
+</div>
+
+<div id="juego">
+  <h2>Fita <span id="numFita"></span></h2>
+  <p id="pregunta"></p>
+  <input id="respuesta" placeholder="Resposta">
+  <br>
+  <button onclick="comprobar()">Enviar</button>
+  <p id="msg"></p>
+</div>
+
+<div id="final">
+  <h2>🏁 FINAL</h2>
+  <p id="tiempoFinal"></p>
+  <p><b>🔐 Codi secret:</b> <span id="codigo"></span></p>
+
+  <h3>🏆 Rànquing d’equips</h3>
+  <ol id="ranking"></ol>
+</div>
+
+<script>
+const preguntas = {
+  1:{p:"Quin és l’hospital més important que hi ha a Bellvitge?", r:"hospital universitari de bellvitge"},
+  2:{p:"En quin municipi es troba el barri de Bellvitge?", r:"hospitalet de llobregat"},
+  3:{p:"Bellvitge és més residencial, turístic o industrial?", r:"residencial"},
+  4:{p:"Quina línia de metro hi ha a Bellvitge?", r:"l1"},
+  5:{p:"De quin color és la línia de metro?", r:"vermella"},
+  6:{p:"En quin any es va començar a crear Bellvitge?", r:"1960"}
+};
+
+const params = new URLSearchParams(location.search);
+const fita = parseInt(params.get("fita"));
+let equipo = localStorage.getItem("equipo");
+
+if (fita) {
+  document.getElementById("inicio").style.display="none";
+  document.getElementById("juego").style.display="block";
+  document.getElementById("numFita").innerText = fita;
+  document.getElementById("pregunta").innerText = preguntas[fita].p;
+}
+
+function iniciar() {
+  equipo = document.getElementById("equipo").value;
+  if (!equipo) return;
+  localStorage.clear();
+  localStorage.setItem("equipo", equipo);
+  localStorage.setItem("inicio", Date.now());
+  location.href = "?fita=1";
+}
+
+function normalizar(txt){
+  return txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+}
+
+function comprobar() {
+  const resp = normalizar(document.getElementById("respuesta").value);
+  const correcta = normalizar(preguntas[fita].r);
+
+  if (resp === correcta) {
+    localStorage.setItem("fita"+fita, Date.now());
+    document.getElementById("msg").innerText = "✅ Correcte!";
+    if (fita === 6) finalizar();
+  } else {
+    document.getElementById("msg").innerText = "❌ Incorrecte, torna-ho a provar";
+  }
+}
+
+function finalizar() {
+  document.getElementById("juego").style.display="none";
+  document.getElementById("final").style.display="block";
+
+  const inicio = localStorage.getItem("inicio");
+  const fin = localStorage.getItem("fita6");
+  const total = Math.round((fin - inicio)/1000);
+
+  document.getElementById("tiempoFinal").innerText =
+    "⏱️ Temps total: " + total + " segons";
+
+  const codigo = "BELL-" + Math.random().toString(36).substring(2,6).toUpperCase();
+  document.getElementById("codigo").innerText = codigo;
+
+  let ranking = JSON.parse(localStorage.getItem("ranking") || "[]");
+  ranking.push({equipo, tiempo: total});
+  ranking.sort((a,b)=>a.tiempo-b.tiempo);
+  localStorage.setItem("ranking", JSON.stringify(ranking));
+
+  const lista = document.getElementById("ranking");
+  ranking.forEach(e=>{
+    const li = document.createElement("li");
+    li.innerText = e.equipo + " – " + e.tiempo + "s";
+    lista.appendChild(li);
+  });
+}
+</script>
+
+</body>
+</html>
